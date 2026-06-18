@@ -1,0 +1,124 @@
+/* Optimizaciones adicionales para móvil */
+
+/* Mejorar scroll suave en iOS */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Desactivar zoom al hacer doble tap en inputs en iOS */
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+  -webkit-user-select: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Optimizar touch actions */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Mejorar legibilidad en pantallas muy pequeñas */
+@media (max-width: 375px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .page-header {
+    padding: max(14px, env(safe-area-inset-top)) 12px 10px;
+  }
+
+  .header-main h1 {
+    font-size: clamp(1.1rem, 5vw, 1.4rem);
+  }
+
+  #addBtn {
+    width: 56px;
+    height: 56px;
+    font-size: 2rem;
+    right: 12px;
+  }
+
+  .toolbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  #cardsContainer {
+    gap: 10px;
+    grid-template-columns: 1fr;
+    padding: 6px 10px;
+  }
+
+  .item-card {
+    padding: 6px;
+  }
+
+  .item-image-container {
+    height: 80px;
+  }
+}
+
+/* Prevenir zoom accidental en iOS */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Optimizar contraste para mejor legibilidad en sol */
+@media (prefers-contrast: more) {
+  :root {
+    --text: #f5f5f5;
+    --muted: #d0d0d0;
+    --card-border: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Respetar preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Optimizar para landscape en móvil */
+@media (orientation: landscape) and (max-height: 500px) {
+  .page-header {
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: 6px;
+  }
+
+  .header-main h1 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .toolbar {
+    padding: 6px 12px;
+    margin-bottom: 8px;
+  }
+
+  #addBtn {
+    width: 52px;
+    height: 52px;
+    font-size: 1.8rem;
+  }
+}

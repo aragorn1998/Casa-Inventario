@@ -21,12 +21,14 @@
 
 html, body {
   margin: 0;
-  min-height: 100%;
+  min-height: 100vh;
   background:
     radial-gradient(circle at top, rgba(110, 168, 254, 0.18), transparent 28%),
     linear-gradient(180deg, #07101b 0%, #0b1220 100%);
   color: var(--text);
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -99,8 +101,12 @@ button {
 }
 
 .toolbar {
-  padding: 14px;
-  margin-bottom: 18px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 .search-wrap {
@@ -111,6 +117,8 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 12px 14px;
+  flex: 1;
+  min-width: 200px;
 }
 
 .search-wrap input {
@@ -255,13 +263,16 @@ input::placeholder {
 
 .icon-btn,
 .mini-btn {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
+  min-width: 48px;
+  min-height: 48px;
+  touch-action: manipulation;
 }
 
 .mini-btn {
@@ -321,13 +332,14 @@ input::placeholder {
 .modal-card {
   position: relative;
   width: min(100%, 720px);
-  max-height: min(90vh, 820px);
+  max-height: 90vh;
   overflow: auto;
-  padding: 24px;
+  padding: 20px;
   border-radius: 24px;
   background: rgba(6, 17, 29, 0.96);
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: 0 28px 60px rgba(0, 0, 0, 0.4);
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-backdrop {
@@ -383,6 +395,9 @@ input::placeholder {
   color: var(--text);
   padding: 14px;
   outline: none;
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-grid input:focus,
@@ -438,7 +453,7 @@ main#mainContent {
 #cardsContainer {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   padding: 8px 16px;
   margin-left: auto;
   margin-right: auto;
@@ -448,14 +463,24 @@ main#mainContent {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-top: 20px;
-  padding-bottom: 12px;
+  gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) 16px 12px;
+  padding-top: max(16px, env(safe-area-inset-top));
 }
 
 .header-main h1 {
   margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2rem);
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: clamp(0.85rem, 3vw, 1rem);
+}
+
+.header-actions {
+  flex-shrink: 0;
 }
 
 /* Quitar posibles recuadros blancos alrededor de logos/imagenes en el header */
@@ -663,14 +688,161 @@ select:focus, #categoryFilter:focus, input[type="file"]:focus, textarea:focus {
   transform: translateY(0);
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .item-card {
     flex-direction: column;
     gap: 10px;
+    padding: 10px;
   }
 
   .item-image-container {
     width: 100%;
+    height: 120px;
+  }
+
+  .item-title {
+    font-size: 0.95rem;
+  }
+
+  .toolbar-controls {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  #categoryFilter {
+    min-width: 100%;
+  }
+
+  #sortSelect {
+    width: auto;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-height: 90vh;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .modal-header {
+    margin-bottom: 14px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  .form-grid label,
+  .image-field,
+  .notes-field {
+    grid-column: span 1 !important;
+  }
+
+  .form-actions {
+    gap: 8px;
+  }
+
+  .form-actions button {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header-main h1 {
+    font-size: clamp(1.2rem, 6vw, 1.6rem);
+  }
+
+  .subtitle {
+    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+    line-height: 1.3;
+  }
+
+  #addBtn {
+    width: 60px;
+    height: 60px;
+    font-size: 2.2rem;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .toolbar {
+    flex-direction: column;
+    padding: 10px 12px;
+  }
+
+  .search-wrap {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .toolbar-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .toolbar-controls > * {
+    width: 100%;
+  }
+
+  #categoryFilter {
+    width: 100%;
+  }
+
+  #sortSelect {
+    width: 100%;
+  }
+
+  .item-card {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .item-image-container {
     height: 100px;
+  }
+
+  .item-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .item-location,
+  .item-notes {
+    font-size: 0.85rem;
+  }
+
+  .item-category {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+
+  .modal {
+    padding: 12px;
+  }
+
+  .modal-card {
+    border-radius: 18px;
+  }
+
+  .form-grid input,
+  .form-grid textarea {
+    padding: 12px;
+  }
+
+  select, #categoryFilter {
+    padding: 10px 8px;
+    font-size: 16px;
   }
 }

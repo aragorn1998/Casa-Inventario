@@ -2,9 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5, user-scalable=yes" />
   <meta name="description" content="Inventario del trastero con sincronización en GitHub" />
   <meta name="theme-color" content="#1f2937" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -12,6 +15,7 @@
 
   <!-- Estilos -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style-mobile-optimizations.css" />
 </head>
 <body>
   <a href="#mainContent" class="skip-link">Saltar al contenido</a>
@@ -44,13 +48,14 @@
         placeholder="Buscar por nombre..."
         autocomplete="off"
         spellcheck="false"
+        inputmode="search"
         aria-describedby="statsText syncBadge"
       />
     </label>
 
     <div class="toolbar-controls">
       <label class="visually-hidden" for="categoryFilter">Filtrar por categoría</label>
-      <input id="categoryFilter" list="categoryList" placeholder="Filtrar por categoría (escribe para buscar)" aria-label="Filtrar por categoría" />
+      <input id="categoryFilter" list="categoryList" placeholder="Filtrar por categoría (escribe para buscar)" inputmode="search" aria-label="Filtrar por categoría" />
       <button id="categoryClear" class="clear-btn" aria-label="Limpiar filtro de categoría">✕</button>
       <datalist id="categoryList"></datalist>
 
