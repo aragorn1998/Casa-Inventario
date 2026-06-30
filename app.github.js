@@ -1,24 +1,13 @@
 /*
-  app.github.js
-  ----------------
-  Esta versión usa la API de GitHub para leer y escribir inventario.json.
-
-  ANTES DE USARLA:
-  1) Sube todos los archivos al repositorio.
-  2) Edita OWNER, REPO y BRANCH con tus datos.
-  3) En index.html sustituye <script src="app.js"></script> por <script src="app.github.js"></script>
-
-  Funcionamiento:
-  - Sin token -> modo solo lectura.
-  - Con token -> se puede añadir, editar y eliminar.
-  - El token se guarda SOLO en el navegador del usuario.
+  Versión compartida con token para subir imágenes desde cualquier dispositivo.
+  Requiere un token personal de GitHub con permisos de escritura sobre el repositorio.
 */
 
 const OWNER = 'aragorn1998';
 const REPO = 'Casa-Inventario';
 const BRANCH = 'main';
 const PATH = 'inventario.json';
-const TOKEN_STORAGE_KEY = 'Inventario_github_token'
+const TOKEN_STORAGE_KEY = 'Inventario_publico_token';
 
 const state = {
   items: [],
@@ -82,13 +71,6 @@ function bindEvents() {
     applyFilter();
   });
 
-  // control limpiar categoría
-  function updateCategoryClearVisibility() {
-    if (!el.categoryFilter || !el.categoryClear) return;
-    const has = !!el.categoryFilter.value && el.categoryFilter.value.trim() !== '';
-    el.categoryClear.classList.toggle('hidden', !has);
-  }
-
   if (el.categoryFilter) {
     el.categoryFilter.addEventListener('input', function () {
       applyFilter();
@@ -100,12 +82,10 @@ function bindEvents() {
     el.categoryClear.addEventListener('click', function () {
       if (!el.categoryFilter) return;
       el.categoryFilter.value = '';
-      el.categoryFilter.focus();
       applyFilter();
       updateCategoryClearVisibility();
     });
   }
-
 
   if (el.sortSelect) {
     el.sortSelect.addEventListener('change', function () {
@@ -133,9 +113,7 @@ function bindEvents() {
   if (el.clearImageBtn) {
     el.clearImageBtn.addEventListener('click', function () {
       clearImagePreview();
-      if (el.imageInput) {
-        el.imageInput.value = '';
-      }
+      if (el.imageInput) el.imageInput.value = '';
     });
   }
 
@@ -157,15 +135,10 @@ function bindEvents() {
     }
   });
 
-  el.tokenBtn.classList.remove('hidden');
-
-  // inicializar visibilidad del clear de categoría
-  if (typeof updateCategoryClearVisibility === 'function') updateCategoryClearVisibility();
-
   el.tokenBtn.addEventListener('click', async function () {
     const current = state.token || '';
     const entered = window.prompt(
-      'Pega aqui tu token personal de GitHub.\n\nSi borras el contenido, volveras a modo solo lectura.',
+      'Pega aqui el token de GitHub con permisos de escritura.\n\nSi lo vacías, la app vuelve a modo solo lectura.',
       current
     );
 
@@ -182,9 +155,16 @@ function bindEvents() {
     await updatePermissionMode();
     applyFilter();
   });
+
+  updateCategoryClearVisibility();
 }
 
-// Actualiza clases en <body> para que el logo muestre estado (verde/rojo)
+function updateCategoryClearVisibility() {
+  if (!el.categoryFilter || !el.categoryClear) return;
+  const hasValue = !!el.categoryFilter.value && el.categoryFilter.value.trim() !== '';
+  el.categoryClear.classList.toggle('hidden', !hasValue);
+}
+
 function updateBodyPermissionClass() {
   document.body.classList.toggle('can-edit', !!state.canEdit);
   document.body.classList.toggle('read-only', !state.canEdit);
@@ -192,10 +172,7 @@ function updateBodyPermissionClass() {
 
 function populateCategoryFilter() {
   if (!el.categoryFilter || !el.categoryList) return;
-
   const categories = Array.from(new Set(state.items.map(i => (i.category || '').trim()).filter(Boolean))).sort();
-
-  // poblar datalist
   el.categoryList.innerHTML = '';
   categories.forEach(function (cat) {
     const opt = document.createElement('option');
@@ -210,13 +187,10 @@ async function loadFromGitHub() {
       headers: githubHeaders(false)
     });
 
-    if (!response.ok) {
-      throw new Error('No se pudo leer inventario.json desde GitHub');
-    }
+    if (!response.ok) throw new Error('No se pudo leer inventario.json');
 
     const data = await response.json();
     state.sha = data.sha;
-
     const decoded = decodeBase64Utf8(data.content || '');
     state.items = JSON.parse(decoded || '[]');
   } catch (error) {
@@ -238,44 +212,39 @@ async function updatePermissionMode() {
     const response = await fetch(apiUrl(), {
       headers: githubHeaders(true)
     });
-
     state.canEdit = response.ok;
   } catch (error) {
     console.error('No se pudo validar el token:', error);
     state.canEdit = false;
   }
+
   setReadOnlyUI(!state.canEdit);
   updateBodyPermissionClass();
 }
 
 function setReadOnlyUI(readOnly) {
   el.syncBadge.classList.remove('hidden');
-  el.syncBadge.textContent = readOnly ? 'Solo lectura' : 'Edicion activada';
+  el.syncBadge.textContent = readOnly ? 'Solo lectura' : 'Edición activada';
   el.addBtn.classList.toggle('hidden', readOnly);
 }
 
 function applyFilter() {
   const query = state.query || '';
-
-  // inicial: copia completa
   state.filteredItems = state.items.slice();
 
-  // búsqueda por texto -> SOLO por nombre
   if (query) {
     state.filteredItems = state.filteredItems.filter(function (item) {
-      return (item.name || '').toLowerCase().indexOf(query) !== -1;
+      return (item.name || '').toLowerCase().includes(query);
     });
   }
 
-  // filtro por categoría: input libre (coincidencia parcial, case-insensitive)
   if (el.categoryFilter && el.categoryFilter.value && el.categoryFilter.value.trim() !== '') {
     const catQuery = el.categoryFilter.value.trim().toLowerCase();
     state.filteredItems = state.filteredItems.filter(function (item) {
-      return (item.category || '').toLowerCase().indexOf(catQuery) !== -1;
+      return (item.category || '').toLowerCase().includes(catQuery);
     });
   }
 
-  // orden
   const sortVal = el.sortSelect ? el.sortSelect.value : 'newest';
   if (sortVal === 'name-asc') {
     state.filteredItems.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -287,8 +256,6 @@ function applyFilter() {
     state.filteredItems.sort((a, b) => (b.category || '').localeCompare(a.category || ''));
   } else if (sortVal === 'location-asc') {
     state.filteredItems.sort((a, b) => (a.location || '').localeCompare(b.location || ''));
-  } else if (sortVal === 'newest') {
-    // items are unshifted on add, so keep current order (newest first)
   }
 
   renderItems();
@@ -296,11 +263,7 @@ function applyFilter() {
 
 function renderItems() {
   el.cardsContainer.innerHTML = '';
-  el.statsText.textContent =
-    state.filteredItems.length +
-    ' objeto' +
-    (state.filteredItems.length === 1 ? '' : 's');
-
+  el.statsText.textContent = state.filteredItems.length + ' objeto' + (state.filteredItems.length === 1 ? '' : 's');
   el.emptyState.classList.toggle('hidden', state.filteredItems.length !== 0);
 
   state.filteredItems.forEach(function (item) {
@@ -325,7 +288,7 @@ function renderItems() {
 
     article.querySelector('.item-title').textContent = item.name || '';
     article.querySelector('.item-category').textContent = item.category || '';
-    article.querySelector('.item-location').textContent = item.location || 'Sin ubicacion';
+    article.querySelector('.item-location').textContent = item.location || 'Sin ubicación';
     article.querySelector('.item-notes').textContent = item.notes || 'Sin notas';
 
     const actions = article.querySelector('.item-actions');
@@ -350,7 +313,7 @@ function renderItems() {
     } else {
       const info = document.createElement('span');
       info.className = 'badge';
-      info.textContent = 'Lectura publica';
+      info.textContent = 'Lectura pública';
       actions.appendChild(info);
     }
 
@@ -374,11 +337,9 @@ function openModal(item) {
     } else {
       clearImagePreview();
     }
-    if (el.imageInput) {
-      el.imageInput.value = '';
-    }
+    if (el.imageInput) el.imageInput.value = '';
   } else {
-    el.modalTitle.textContent = 'Anadir objeto';
+    el.modalTitle.textContent = 'Añadir objeto';
     el.itemId.value = '';
     el.nameInput.value = '';
     el.categoryInput.value = '';
@@ -386,14 +347,11 @@ function openModal(item) {
     el.notesInput.value = '';
     el.imageData.value = '';
     clearImagePreview();
-    if (el.imageInput) {
-      el.imageInput.value = '';
-    }
+    if (el.imageInput) el.imageInput.value = '';
   }
 
   el.modal.classList.remove('hidden');
   document.body.classList.add('modal-open');
-
   setTimeout(function () {
     el.nameInput.focus();
   }, 20);
@@ -437,7 +395,7 @@ async function saveFromForm() {
 }
 
 async function deleteItem(id) {
-  const confirmed = window.confirm('Seguro que quieres eliminar este objeto?');
+  const confirmed = window.confirm('¿Seguro que quieres eliminar este objeto?');
   if (!confirmed) return;
 
   state.items = state.items.filter(function (item) {
@@ -480,7 +438,7 @@ async function pushToGitHub(message) {
     return true;
   } catch (error) {
     console.error('Error al guardar en GitHub:', error);
-    window.alert('No se pudo guardar en GitHub. Revisa el token y OWNER / REPO / BRANCH.');
+    window.alert('No se pudo guardar en GitHub. Revisa el token y los datos del repositorio.');
     return false;
   }
 }
@@ -512,11 +470,7 @@ function escapeHtml(text) {
 }
 
 function apiUrl() {
-  return 'https://api.github.com/repos/' +
-    OWNER + '/' +
-    REPO + '/contents/' +
-    PATH + '?ref=' +
-    encodeURIComponent(BRANCH);
+  return 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + PATH + '?ref=' + encodeURIComponent(BRANCH);
 }
 
 function githubHeaders(withAuth) {
@@ -524,11 +478,9 @@ function githubHeaders(withAuth) {
     'Accept': 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28'
   };
-
   if (withAuth && state.token) {
     headers.Authorization = 'Bearer ' + state.token;
   }
-
   return headers;
 }
 
