@@ -1,6 +1,12 @@
 /*
   Versión compartida con token para subir imágenes desde cualquier dispositivo.
   Requiere un token personal de GitHub con permisos de escritura sobre el repositorio.
+
+  Cambios principales:
+  - Las imágenes ya no se guardan embebidas en inventario.json (base64). Se suben como archivos separados
+    en la carpeta `images/` y en el inventario se guarda la referencia `imagePath` (URL raw.githubusercontent).
+  - Esto reduce significativamente el tamaño de inventario.json, evita sobrescrituras masivas y mejora el
+    rendimiento y la tolerancia a concurrencia entre dispositivos.
 */
 
 const OWNER = 'aragorn1998';
@@ -103,6 +109,7 @@ function bindEvents() {
 
       const reader = new FileReader();
       reader.onload = function () {
+        // keep the base64 dataURL locally for preview and to upload when saving
         el.imageData.value = reader.result || '';
         setImagePreview(reader.result);
       };
@@ -270,7 +277,9 @@ function renderItems() {
     const article = document.createElement('article');
     article.className = 'item-card';
 
-    const imageHtml = item.imageData ? '<div class="item-image-container"><img class="item-image" src="' + item.imageData + '" alt="Imagen de ' + escapeHtml(item.name || 'objeto') + '" /></div>' : '';
+    // show image: prefer imagePath (uploaded file), fallback to imageData (legacy / preview)
+    const imgSrc = item.imagePath || item.imageData || '';
+    const imageHtml = imgSrc ? '<div class="item-image-container"><img class="item-image" src="' + imgSrc + '" alt="Imagen de ' + escapeHtml(item.name || 'objeto') + '" /></div>' : '';
 
     article.innerHTML =
       imageHtml +
@@ -331,7 +340,11 @@ function openModal(item) {
     el.categoryInput.value = item.category || '';
     el.locationInput.value = item.location || '';
     el.notesInput.value = item.notes || '';
-    if (item.imageData) {
+    if (item.imagePath) {
+      // show uploaded image
+      el.imageData.value = item.imagePath || '';
+      setImagePreview(item.imagePath);
+    } else if (item.imageData) {
       el.imageData.value = item.imageData;
       setImagePreview(item.imageData);
     } else {
@@ -369,10 +382,30 @@ async function saveFromForm() {
     category: el.categoryInput.value.trim(),
     location: el.locationInput.value.trim(),
     notes: el.notesInput.value.trim(),
+    // imageData may contain a dataURL (preview) or a raw URL (uploaded). We'll handle before pushing.
     imageData: el.imageData ? el.imageData.value.trim() : ''
   };
 
   try {
+    // If user selected a new image (dataURL), upload it first to reduce size of the inventario.json
+    if (item.imageData && item.imageData.indexOf('data:') === 0) {
+      if (!state.token) {
+        window.alert('Se necesita token para subir imágenes. Añade tu token en el botón de token.');
+        return;
+      }
+      try {
+        const uploadRes = await uploadImageToGitHub(item.imageData);
+        if (uploadRes && uploadRes.raw) {
+          item.imagePath = uploadRes.raw; // raw.githubusercontent URL
+          delete item.imageData; // don't keep base64 in inventory
+        }
+      } catch (err) {
+        console.error('No se pudo subir la imagen:', err);
+        window.alert('Error subiendo la imagen. Intenta de nuevo.');
+        return;
+      }
+    }
+
     await refreshLatestRemoteState();
   } catch (error) {
     console.error('No se pudo refrescar el inventario antes de guardar:', error);
@@ -383,6 +416,9 @@ async function saveFromForm() {
   });
 
   if (existingIndex >= 0) {
+    // merge: keep any existing imagePath if user didn't change
+    const existing = state.items[existingIndex];
+    if (!item.imagePath && existing.imagePath) item.imagePath = existing.imagePath;
     state.items[existingIndex] = item;
   } else {
     state.items.unshift(item);
@@ -467,6 +503,7 @@ async function pushToGitHub(message) {
 
     if (!response.ok) {
       if (response.status === 409) {
+        // conflicto: refrescar y reintentar
         await refreshLatestRemoteState();
         const retryBody = {
           message: message + ' (reintento)',
@@ -549,4 +586,35 @@ function encodeBase64Utf8(text) {
 
 function decodeBase64Utf8(base64Text) {
   return decodeURIComponent(escape(atob(base64Text.replace(/\n/g, ''))));
+}
+
+// Upload an image dataURL to the repository under images/ and return { path, raw }
+async function uploadImageToGitHub(dataUrl) {
+  const match = String(dataUrl).match(/^data:(image\/\w+);base64,(.+)$/);
+  if (!match) throw new Error('Formato de imagen no reconocido');
+  const mime = match[1];
+  const b64 = match[2];
+  const ext = mime.split('/')[1] === 'jpeg' ? 'jpg' : mime.split('/')[1];
+  const filename = 'images/img-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9) + '.' + ext;
+
+  const url = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + encodeURIComponent(filename);
+  const body = {
+    message: 'Añadir imagen ' + filename,
+    branch: BRANCH,
+    content: b64
+  };
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: githubHeaders(true),
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error('Error subiendo imagen: ' + details);
+  }
+
+  // raw URL: https://raw.githubusercontent.com/OWNER/REPO/BRANCH/<filename>
+  return { path: filename, raw: 'https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/' + BRANCH + '/' + filename };
 }
