@@ -372,6 +372,12 @@ async function saveFromForm() {
     imageData: el.imageData ? el.imageData.value.trim() : ''
   };
 
+  try {
+    await refreshLatestRemoteState();
+  } catch (error) {
+    console.error('No se pudo refrescar el inventario antes de guardar:', error);
+  }
+
   const existingIndex = state.items.findIndex(function (entry) {
     return entry.id === item.id;
   });
@@ -398,6 +404,12 @@ async function deleteItem(id) {
   const confirmed = window.confirm('¿Seguro que quieres eliminar este objeto?');
   if (!confirmed) return;
 
+  try {
+    await refreshLatestRemoteState();
+  } catch (error) {
+    console.error('No se pudo refrescar el inventario antes de eliminar:', error);
+  }
+
   state.items = state.items.filter(function (item) {
     return item.id !== id;
   });
@@ -413,6 +425,31 @@ async function deleteItem(id) {
   }
 }
 
+async function refreshLatestRemoteState() {
+  const response = await fetch(apiUrl(), {
+    headers: githubHeaders(false)
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo leer inventario.json antes de la actualización.');
+  }
+
+  const data = await response.json();
+  const remoteSha = data.sha;
+  const decoded = decodeBase64Utf8(data.content || '');
+  const remoteItems = JSON.parse(decoded || '[]');
+
+  if (remoteSha !== state.sha) {
+    state.items = remoteItems;
+    state.sha = remoteSha;
+  }
+
+  return {
+    remoteItems,
+    remoteSha
+  };
+}
+
 async function pushToGitHub(message) {
   try {
     const body = {
@@ -422,11 +459,29 @@ async function pushToGitHub(message) {
       content: encodeBase64Utf8(JSON.stringify(state.items, null, 2))
     };
 
-    const response = await fetch(apiUrl(), {
+    let response = await fetch(apiUrl(), {
       method: 'PUT',
       headers: githubHeaders(true),
       body: JSON.stringify(body)
     });
+
+    if (!response.ok) {
+      if (response.status === 409) {
+        await refreshLatestRemoteState();
+        const retryBody = {
+          message: message + ' (reintento)',
+          branch: BRANCH,
+          sha: state.sha,
+          content: encodeBase64Utf8(JSON.stringify(state.items, null, 2))
+        };
+
+        response = await fetch(apiUrl(), {
+          method: 'PUT',
+          headers: githubHeaders(true),
+          body: JSON.stringify(retryBody)
+        });
+      }
+    }
 
     if (!response.ok) {
       const details = await response.text();
