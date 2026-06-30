@@ -1,5 +1,13 @@
 [
   {
+    "id": "item-1782828061500-a1wjslt",
+    "name": "Mamá",
+    "category": "Madre",
+    "location": "Cocina",
+    "notes": "",
+    "imagePath": "https://raw.githubusercontent.com/aragorn1998/Casa-Inventario/main/images/img-1782828061524-ydcm7d4.jpg"
+  },
+  {
     "id": "item-1782819464086-e1z2iqt",
     "name": "Prueba 2",
     "category": "",
