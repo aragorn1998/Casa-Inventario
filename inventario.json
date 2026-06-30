@@ -1,5 +1,13 @@
 [
   {
+    "id": "item-1782819010639-xr4gwc2",
+    "name": "Caso",
+    "category": "Zapato",
+    "location": "Estantería izda",
+    "notes": "",
+    "imagePath": "https://raw.githubusercontent.com/aragorn1998/Casa-Inventario/main/images/img-1782819010677-yh2y65p.jpg"
+  },
+  {
     "id": "item-1782818894184-mzzvktb",
     "name": "t",
     "category": "Zapato",
