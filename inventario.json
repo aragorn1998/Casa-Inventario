@@ -1,5 +1,13 @@
 [
   {
+    "id": "item-1782827879446-wvoacea",
+    "name": "Sofía",
+    "category": "Hermana",
+    "location": "Habitación de papá",
+    "notes": "",
+    "imagePath": "https://raw.githubusercontent.com/aragorn1998/Casa-Inventario/main/images/img-1782827879477-4e7daxl.jpg"
+  },
+  {
     "id": "item-1782819464086-e1z2iqt",
     "name": "Prueba 2",
     "category": "",
